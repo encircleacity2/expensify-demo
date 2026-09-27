@@ -4870,6 +4870,7 @@ const translations = {
             recruiting: 'Recruiting',
             mcp: 'MCP',
             receiptPartners: 'Receipt partners',
+            connections: 'Connections',
             rules: 'Rules',
             displayedAs: 'Displayed as',
             plan: 'Plan',
@@ -5031,6 +5032,27 @@ const translations = {
                 title: 'ChatGPT',
                 subtitle: 'by OpenAI',
             },
+        },
+        connections: {
+            tabs: {
+                [CONST.TAB.CONNECTIONS.POPULAR]: 'Popular',
+                [CONST.TAB.CONNECTIONS.ALL]: 'All',
+                [CONST.TAB.CONNECTIONS.ACCOUNTING]: 'Accounting',
+                [CONST.TAB.CONNECTIONS.PEOPLE]: 'People',
+                [CONST.TAB.CONNECTIONS.TRAVEL]: 'Travel & Delivery',
+                [CONST.TAB.CONNECTIONS.AI]: 'AI & MCP',
+            },
+            findConnections: 'Find connections',
+            configure: 'Configure',
+            fix: 'Fix',
+            active: 'Active',
+            broken: 'Broken',
+            brokenConnection: 'Cannot sync due to broken connection',
+            syncing: 'Syncing',
+            synced: (calendarTime: string) => `Synced ${calendarTime}`,
+            hrisListing: (providerName: string) => `${providerName} (HRIS)`,
+            atsListing: (providerName: string) => `${providerName} (ATS)`,
+            suggestIntegration: "Don't see yours? Suggest an integration, we'll look into it.",
         },
         receiptPartners: {
             uber: {
@@ -7438,7 +7460,8 @@ const translations = {
             disconnect: 'Disconnect',
             reinstall: 'Reinstall connector',
             disconnectTitle: (connectionName = 'integration') => `Disconnect ${connectionName}`,
-            connectTitle: (connectionName: string) => `Connect ${connectionName}`,
+            alreadyConnectedTitle: 'You already got an active accounting integration',
+            replaceIntegration: 'Replace integration',
 
             syncError: (connectionName: string) => `Can't connect to ${connectionName}`,
             accounts: 'Chart of accounts',
@@ -11441,6 +11464,7 @@ const translations = {
         markAllAsRead: '<tooltip>Right-click to <strong>mark all as read</strong>.</tooltip>',
         markAllAsReadTouchScreen: '<tooltip>Long-press to <strong>mark all as read</strong>.</tooltip>',
         accountMovedToTopBar: '<tooltip>Access your account and personal settings.</tooltip>',
+        connectionsMoved: 'All your connections in one place',
     },
     discardChangesConfirmation: {
         title: 'Discard changes?',
