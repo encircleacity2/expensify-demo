@@ -286,11 +286,12 @@ function ParticipantSearchResults({
     const hasAvailableOptions = hasListOptions || !isEmptyObject(availableOptions.selfDMChat);
 
     const inputHelperText = getHeaderMessage(
+        translate,
         hasAvailableOptions,
         !!availableOptions?.userToInvite,
         debouncedSearchTerm.trim(),
         countryCode,
-        participants.some((participant) => doesPersonalDetailMatchSearchTerm(participant, currentUserAccountID, cleanSearchTerm)),
+        participants.some((participant) => doesPersonalDetailMatchSearchTerm(participant, currentUserAccountID, cleanSearchTerm, translate)),
     );
 
     const showImportContacts =
