@@ -10,6 +10,7 @@ import getNonEmptyStringOnyxID from '@libs/getNonEmptyStringOnyxID';
 import {getValidConnectedIntegration, isSubmitPolicy} from '@libs/PolicyUtils';
 import {getFilteredReportActionsForReportView} from '@libs/ReportActionsUtils';
 import {
+    canIOUBePaid,
     getIntegrationNameFromExportMessage as getIntegrationNameFromExportMessageUtils,
     hasHeldExpensesFromTransactions as hasHeldExpensesReportUtils,
     hasOnlyHeldExpenses as hasOnlyHeldExpensesReportUtils,
@@ -29,7 +30,7 @@ import {
 } from '@libs/TransactionUtils';
 
 import {cancelPayment, markReportPaymentReceived} from '@userActions/IOU/PayMoneyRequest';
-import {approveMoneyRequest, canIOUBePaid as canIOUBePaidAction, reopenReport, retractReport, submitReport, unapproveExpenseReport} from '@userActions/IOU/ReportWorkflow';
+import {approveMoneyRequest, reopenReport, retractReport, submitReport, unapproveExpenseReport} from '@userActions/IOU/ReportWorkflow';
 import {markPendingRTERTransactionsAsCash} from '@userActions/Transaction';
 
 import CONST from '@src/CONST';
@@ -209,10 +210,9 @@ function useLifecycleActions({reportID, startApprovedAnimation, startAnimation, 
         }
     };
 
-    const canIOUBePaid = canIOUBePaidAction(moneyRequestReport, chatReport, policy, bankAccountList, currentUserPersonalDetails.login ?? '', accountID);
-    const onlyShowPayElsewhere =
-        !canIOUBePaid && canIOUBePaidAction(moneyRequestReport, chatReport, policy, bankAccountList, currentUserPersonalDetails.login ?? '', accountID, undefined, true);
-    const shouldShowPayButton = canIOUBePaid || onlyShowPayElsewhere;
+    const isIOUPayable = canIOUBePaid(moneyRequestReport, chatReport, policy, bankAccountList, currentUserPersonalDetails.login ?? '', accountID);
+    const onlyShowPayElsewhere = !isIOUPayable && canIOUBePaid(moneyRequestReport, chatReport, policy, bankAccountList, currentUserPersonalDetails.login ?? '', accountID, undefined, true);
+    const shouldShowPayButton = isIOUPayable || onlyShowPayElsewhere;
     const hasOnlyHeldExpenses = hasOnlyHeldExpensesReportUtils(transactions);
     const shouldShowApprovalSecondaryActions = isAnyTransactionOnHold && !isDelegateAccessRestricted;
     const secondaryApprovalActions = shouldShowApprovalSecondaryActions
