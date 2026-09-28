@@ -252,6 +252,7 @@ function ExpenseReportListItemInner<TItem extends ListItem>({
         delegateEmail,
         delegateAccountID,
         conciergeChat,
+        bankAccountList,
     } = useReportPaymentContext({
         chatReportPolicyID: chatReport?.policyID,
     });
@@ -323,6 +324,7 @@ function ExpenseReportListItemInner<TItem extends ListItem>({
             allViolations: liveViolationsForSnapshotTransactions,
             rules,
             conciergeChat,
+            bankAccountList,
         });
     }, [
         currentSearchHash,
@@ -367,6 +369,7 @@ function ExpenseReportListItemInner<TItem extends ListItem>({
         liveViolationsForSnapshotTransactions,
         rules,
         conciergeChat,
+        bankAccountList,
         shouldShowMarkAsDoneCopy,
     ]);
 
