@@ -78,7 +78,6 @@ function DebugReportPage({
     });
     const [draftComment] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_DRAFT_COMMENT}${reportID}`);
     const [priorityMode] = useOnyx(ONYXKEYS.NVP_PRIORITY_MODE);
-    const [betas] = useOnyx(ONYXKEYS.BETAS);
     const {isBetaEnabled} = usePermissions();
     const isDefaultRoomsBetaEnabled = isBetaEnabled(CONST.BETAS.DEFAULT_ROOMS);
     const [conciergeReportID] = useOnyx(ONYXKEYS.CONCIERGE_REPORT_ID);
@@ -217,7 +216,6 @@ function DebugReportPage({
                         currentUserAccountID,
                         introSelected,
                         isSelfTourViewed,
-                        betas,
                         reportOwnerPersonalDetail,
                         currentUserPersonalDetail,
                         conciergePersonalDetail,
@@ -289,7 +287,6 @@ function DebugReportPage({
             conciergeReportID,
             introSelected,
             isSelfTourViewed,
-            betas,
             reportOwnerPersonalDetail,
             currentUserPersonalDetail,
             conciergePersonalDetail,

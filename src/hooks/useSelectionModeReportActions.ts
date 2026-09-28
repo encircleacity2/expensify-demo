@@ -14,7 +14,6 @@ import {canIOUBePaid as canIOUBePaidAction, getNonHeldAndFullAmount, hasOnlyHeld
 
 import CONST from '@src/CONST';
 import ONYXKEYS from '@src/ONYXKEYS';
-import {personalDetailsLoginSelector} from '@src/selectors/PersonalDetails';
 import {createMoveExpenseReportNVPSelector} from '@src/selectors/Report';
 import type * as OnyxTypes from '@src/types/onyx';
 import type {PaymentMethodType} from '@src/types/onyx/OriginalMessage';
@@ -22,6 +21,7 @@ import type {PaymentMethodType} from '@src/types/onyx/OriginalMessage';
 import type {OnyxEntry} from 'react-native-onyx';
 
 import {isTrackIntentUserSelector} from '@selectors/Onboarding';
+import {loginSelector} from '@selectors/PersonalDetails';
 import {useState} from 'react';
 
 import {useCurrencyListActions} from './useCurrencyList';
@@ -31,6 +31,7 @@ import useLifecycleActions from './useLifecycleActions';
 import useLocalize from './useLocalize';
 import useNetwork from './useNetwork';
 import useOnyx from './useOnyx';
+import {usePersonalDetail} from './usePersonalDetails';
 import useReportIsArchived from './useReportIsArchived';
 import useSelectionModePayment from './useSelectionModePayment';
 
@@ -68,7 +69,7 @@ function useSelectionModeReportActions({
     const [moveExpenseReportNameValuePairs] = useOnyx(ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS, {
         selector: createMoveExpenseReportNVPSelector(outstandingReportsByPolicyID, report?.reportID),
     });
-    const [submitterLogin] = useOnyx(ONYXKEYS.PERSONAL_DETAILS_LIST, {selector: personalDetailsLoginSelector(report?.ownerAccountID)});
+    const [submitterLogin] = usePersonalDetail(report?.ownerAccountID, loginSelector);
     const [invoiceReceiverPolicy] = useOnyx(
         `${ONYXKEYS.COLLECTION.POLICY}${chatReport?.invoiceReceiver && 'policyID' in chatReport.invoiceReceiver ? chatReport.invoiceReceiver.policyID : undefined}`,
     );
