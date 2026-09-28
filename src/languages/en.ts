@@ -11219,6 +11219,10 @@ const translations = {
                 invalid: 'This code is invalid',
             },
         },
+        paymentHistory: {
+            title: 'View payment history',
+            subtitle: 'Your complete monthly payment history charged to this account.',
+        },
         subscriptionSettings: {
             title: 'Subscription settings',
             editSubscription: 'Edit subscription',
