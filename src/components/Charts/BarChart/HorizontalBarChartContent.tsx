@@ -1,10 +1,11 @@
 import ActivityIndicator from '@components/ActivityIndicator';
+import {HORIZONTAL_BAR_DOMAIN_PADDING, MIN_BAR_ROW_HEIGHT} from '@components/Charts/barChartConstants';
 import ChartTooltipLayer from '@components/Charts/components/ChartTooltipLayer';
 import ChartYAxisLabels from '@components/Charts/components/ChartYAxisLabels';
 import type {HitTestArgs, ResolveTargetIndexArgs} from '@components/Charts/hooks';
 import {useChartFontManager, useChartInteractions, useChartLabelFormats, useChartParagraphs} from '@components/Charts/hooks';
 import {findClosestPoint} from '@components/Charts/hooks/useChartInteractions';
-import {calculateMinDomainPadding, getFontLineMetrics, getNiceValueDomain, getNiceValueTicks, measureTextWidth} from '@components/Charts/utils';
+import {calculateMinDomainPadding, getFontLineMetrics, getHorizontalChartHeight, getNiceValueDomain, getNiceValueTicks, measureTextWidth} from '@components/Charts/utils';
 import VictoryTheme, {CHART_CONTENT_MIN_HEIGHT, GLYPH_PADDING, LABEL_PADDING, MAX_Y_AXIS_LABEL_WIDTH} from '@components/Charts/VictoryTheme';
 
 import useTheme from '@hooks/useTheme';
@@ -25,9 +26,6 @@ import Animated, {useAnimatedStyle, useSharedValue} from 'react-native-reanimate
 import {CartesianChart} from 'victory-native';
 
 import type {BarChartProps} from './types';
-
-/** Extra pixel spacing between the chart boundary and the data range. `right` keeps the longest bar's tip and its tooltip off the edge. */
-const BASE_DOMAIN_PADDING = {top: 8, bottom: 8, left: 0, right: 8};
 
 /** Gap between the bar tip and the tooltip pointer, lifting the tooltip clear of the bar. */
 const TOOLTIP_TIP_GAP = 4;
@@ -191,10 +189,10 @@ function HorizontalBarChartContentBody({data, isLoading, yAxisUnit, yAxisUnitPos
 
     const domainPadding = (() => {
         if (barAreaHeight === 0) {
-            return BASE_DOMAIN_PADDING;
+            return HORIZONTAL_BAR_DOMAIN_PADDING;
         }
         const verticalPadding = calculateMinDomainPadding(barAreaHeight, data.length, HORIZONTAL_BAR_PADDING);
-        return {...BASE_DOMAIN_PADDING, top: verticalPadding, bottom: verticalPadding};
+        return {...HORIZONTAL_BAR_DOMAIN_PADDING, top: verticalPadding, bottom: verticalPadding};
     })();
 
     const barThickness = useSharedValue(0);
@@ -351,13 +349,14 @@ function HorizontalBarChartContentBody({data, isLoading, yAxisUnit, yAxisUnitPos
         );
     };
 
-    const dynamicChartStyle = {height: CHART_CONTENT_MIN_HEIGHT + labelSpace};
     const chartPadding = {
         ...VictoryTheme.axis.padding,
         right: VictoryTheme.axis.padding.right + valueLabelRightGutter,
         bottom: labelSpace + VictoryTheme.axis.padding.bottom,
         left: categoryLabelWidth + CATEGORY_LABEL_GAP + GLYPH_PADDING,
     };
+
+    const dynamicChartStyle = {height: getHorizontalChartHeight(data.length, MIN_BAR_ROW_HEIGHT, chartPadding.top + chartPadding.bottom, CHART_CONTENT_MIN_HEIGHT + labelSpace)};
 
     // Draw each bar as its own Skia path so the rounded pill sits on the value tip and the axis end stays square,
     // for both positive (right-pointing) and negative (left-pointing) bars. thickness mirrors BarGroup's own
