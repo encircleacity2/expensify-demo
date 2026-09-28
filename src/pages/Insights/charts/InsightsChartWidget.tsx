@@ -14,6 +14,7 @@ import useThemeStyles from '@hooks/useThemeStyles';
 
 import Navigation from '@libs/Navigation/Navigation';
 
+import InsightsGroupByDropdown from '@pages/Insights/controls/InsightsGroupByDropdown';
 import type {InsightsChartSpec} from '@pages/Insights/dashboardSpecs';
 import resolveComparisonWindows from '@pages/Insights/insightsCompare';
 import type {InsightsFilters} from '@pages/Insights/insightsFilters';
@@ -42,9 +43,12 @@ type InsightsChartWidgetProps = {
 
     /** Called by the retry button to request the dashboard again */
     onRetry: () => void;
+
+    /** Shows a group-by control in the chart's header when set */
+    onGroupByChange?: (groupBy: InsightsFilters['groupBy']) => void;
 };
 
-function InsightsChartWidget({dashboardID, hash, chart, filters, onRetry}: InsightsChartWidgetProps) {
+function InsightsChartWidget({dashboardID, hash, chart, filters, onRetry, onGroupByChange}: InsightsChartWidgetProps) {
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
@@ -71,28 +75,43 @@ function InsightsChartWidget({dashboardID, hash, chart, filters, onRetry}: Insig
         return null;
     }
 
+    const groupByControl = onGroupByChange ? (
+        <InsightsGroupByDropdown
+            groupBy={filters.groupBy}
+            onChange={onGroupByChange}
+        />
+    ) : null;
+
+    const headerMenu =
+        state === INSIGHTS_CHART_STATE.READY || isLoading ? (
+            <WidgetHeaderMenu
+                testID={`insightsChartMenu-${chart.graphKey}`}
+                sentryLabel="InsightsChartMenu"
+                menuItems={[
+                    {
+                        text: translate('insightsPage.viewOnSpend'),
+                        icon: icons.Expand,
+                        onSelected: () =>
+                            Navigation.navigate(
+                                ROUTES.SEARCH_ROOT.getRoute({
+                                    query: buildViewOnSpendQuery(queryJSON),
+                                }),
+                            ),
+                        shouldCallAfterModalHide: true,
+                    },
+                ]}
+            />
+        ) : null;
+
     return (
         <WidgetContainer
             title={translate(chart.titleKey)}
             titleRightContent={
-                state === INSIGHTS_CHART_STATE.READY ? (
-                    <WidgetHeaderMenu
-                        testID={`insightsChartMenu-${chart.graphKey}`}
-                        sentryLabel="InsightsChartMenu"
-                        menuItems={[
-                            {
-                                text: translate('insightsPage.viewOnSpend'),
-                                icon: icons.Expand,
-                                onSelected: () =>
-                                    Navigation.navigate(
-                                        ROUTES.SEARCH_ROOT.getRoute({
-                                            query: buildViewOnSpendQuery(queryJSON),
-                                        }),
-                                    ),
-                                shouldCallAfterModalHide: true,
-                            },
-                        ]}
-                    />
+                !!groupByControl || !!headerMenu ? (
+                    <View style={[styles.flexRow, styles.alignItemsCenter]}>
+                        {groupByControl}
+                        {headerMenu}
+                    </View>
                 ) : null
             }
         >
