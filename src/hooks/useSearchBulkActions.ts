@@ -778,6 +778,7 @@ function useSearchBulkActions({queryJSON}: UseSearchBulkActionsParams) {
             const chatReport = chatReportID ? currentSearchResults?.data?.[`${ONYXKEYS.COLLECTION.REPORT}${chatReportID}`] : undefined;
             const invoiceReceiverPolicyID = chatReport?.invoiceReceiver && 'policyID' in chatReport.invoiceReceiver ? chatReport.invoiceReceiver.policyID : undefined;
             const invoiceReceiverPolicy = invoiceReceiverPolicyID ? currentSearchResults?.data?.[`${ONYXKEYS.COLLECTION.POLICY}${invoiceReceiverPolicyID}`] : undefined;
+            const isChatReportArchived = isArchivedReport(chatReportID ? currentSearchResults?.data?.[`${ONYXKEYS.COLLECTION.REPORT_NAME_VALUE_PAIRS}${chatReportID}`] : undefined);
             return (
                 report &&
                 !canIOUBePaid(
@@ -789,7 +790,7 @@ function useSearchBulkActions({queryJSON}: UseSearchBulkActionsParams) {
                     currentUserPersonalDetails.accountID,
                     undefined,
                     false,
-                    undefined,
+                    isChatReportArchived,
                     invoiceReceiverPolicy,
                 ) &&
                 canIOUBePaid(
@@ -801,7 +802,7 @@ function useSearchBulkActions({queryJSON}: UseSearchBulkActionsParams) {
                     currentUserPersonalDetails.accountID,
                     undefined,
                     true,
-                    undefined,
+                    isChatReportArchived,
                     invoiceReceiverPolicy,
                 )
             );
