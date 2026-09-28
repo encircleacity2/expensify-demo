@@ -177,7 +177,18 @@ type BeneficialOwnersStepBaseProps = {
 
 // BeneficialOwnerDraftData is saved under dynamic key which consists of prefix, beneficial owner ID and input key
 type BeneficialOwnerDataKey = `beneficialOwner_${string}_${string}`;
-type ReimbursementAccountFormExtraProps = BeneficialOwnersStepExtraProps & {bankAccountID?: number; isComingFromExpensifyCard?: boolean};
+type ReimbursementAccountFormExtraProps = BeneficialOwnersStepExtraProps & {
+    bankAccountID?: number;
+    isComingFromExpensifyCard?: boolean;
+    /** Where the bank account setup was started */
+    source?: string;
+    /** Last focused page in an unfinished Wallet business bank account setup */
+    currentPage?: string;
+    /** Last focused subpage in an unfinished Wallet business bank account setup */
+    currentSubPage?: string;
+    /** Whether the last focused Wallet business bank account subpage was opened for editing */
+    currentPageAction?: 'edit';
+};
 
 type BeneficialOwnersStepExtraProps = {
     [key: BeneficialOwnerDataKey]: string | FileObject[];

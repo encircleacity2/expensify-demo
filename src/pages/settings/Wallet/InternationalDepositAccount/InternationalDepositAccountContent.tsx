@@ -1,3 +1,4 @@
+import FormDraftPersistenceContext from '@components/Form/FormDraftPersistenceContext';
 import FullScreenLoadingIndicator from '@components/FullscreenLoadingIndicator';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import ScreenWrapper from '@components/ScreenWrapper';
@@ -7,7 +8,7 @@ import useLocalize from '@hooks/useLocalize';
 import useRootNavigationState from '@hooks/useRootNavigationState';
 import useSubPage from '@hooks/useSubPage';
 
-import {clearCorpayBankAccountFields} from '@libs/actions/BankAccounts';
+import {clearCorpayBankAccountFields, updatePersonalBankAccountCurrentPage} from '@libs/actions/BankAccounts';
 import {clearDraftValues} from '@libs/actions/FormActions';
 import getActiveTabName from '@libs/Navigation/helpers/getActiveTabName';
 import {isFullScreenName} from '@libs/Navigation/helpers/isNavigatorName';
@@ -27,8 +28,8 @@ import {isEmptyObject} from '@src/types/utils/EmptyObject';
 
 import type {OnyxEntry} from 'react-native-onyx';
 
-import {useRoute} from '@react-navigation/native';
-import React from 'react';
+import {useIsFocused, useRoute} from '@react-navigation/native';
+import React, {useEffect} from 'react';
 
 import type CustomSubPageProps from './types';
 
@@ -48,6 +49,9 @@ type InternationalDepositAccountContentProps = {
     draftValues: OnyxEntry<InternationalBankAccountForm>;
     country: OnyxEntry<string>;
     isAccountLoading: boolean;
+    isWalletSetup: boolean;
+    savedPage?: string;
+    savedPageAction?: 'edit';
     backTo?: Route;
 };
 
@@ -79,6 +83,9 @@ function InternationalDepositAccountContent({
     draftValues,
     country,
     isAccountLoading,
+    isWalletSetup,
+    savedPage,
+    savedPageAction,
     backTo,
 }: InternationalDepositAccountContentProps) {
     const {translate} = useLocalize();
@@ -89,13 +96,18 @@ function InternationalDepositAccountContent({
 
     const initialAccountHolderDetailsValues = getInitialPersonalDetailsValues(privatePersonalDetails);
 
-    const startFrom = getInitialSubstep(values, fieldsMap);
+    const firstIncompletePageIndex = getInitialSubstep(values, fieldsMap);
 
     const skipAccountTypeStep = isEmptyObject(fieldsMap[CONST.CORPAY_FIELDS.PAGE_NAME.ACCOUNT_TYPE]);
 
     const skipAccountHolderInformationStep = testValidation(initialAccountHolderDetailsValues, fieldsMap[CONST.CORPAY_FIELDS.PAGE_NAME.ACCOUNT_HOLDER_DETAILS]);
 
     const skippedPages = getSkippedPages(skipAccountTypeStep, skipAccountHolderInformationStep);
+    const savedPageIndex = pages.findIndex(
+        (page) => page.pageName === savedPage && (!skippedPages.includes(page.pageName) || (savedPageAction === 'edit' && !isEmptyObject(fieldsMap[page.pageName]))),
+    );
+    const startFrom = isWalletSetup && savedPageIndex >= 0 ? Math.min(savedPageIndex, firstIncompletePageIndex) : firstIncompletePageIndex;
+    const startAction = isWalletSetup && savedPageIndex >= 0 && savedPageAction === 'edit' && startFrom === savedPageIndex ? savedPageAction : undefined;
 
     const route = useRoute<PlatformStackRouteProp<SettingsNavigatorParamList, typeof SCREENS.SETTINGS.ADD_BANK_ACCOUNT>>();
     const topmostFullScreenRoute = useRootNavigationState((state) => state?.routes.findLast((r) => isFullScreenName(r.name)));
@@ -125,13 +137,28 @@ function InternationalDepositAccountContent({
         goBack(backTo?.includes(ROUTES.SETTINGS_BANK_ACCOUNT_PURPOSE));
     };
 
-    const {CurrentPage, isEditing, nextPage, prevPage, pageIndex, moveTo, isRedirecting} = useSubPage<CustomSubPageProps>({
+    const {CurrentPage, isEditing, nextPage, prevPage, pageIndex, currentPageName, moveTo, isRedirecting} = useSubPage<CustomSubPageProps>({
         pages,
         startFrom,
+        startAction,
         onFinished: handleFinishStep,
         skipPages: skippedPages,
         buildRoute: (pageName, action) => ROUTES.SETTINGS_ADD_BANK_ACCOUNT.getRoute(route.params?.backTo, pageName, action),
     });
+    const shouldPersistDraft =
+        isWalletSetup &&
+        isEditing &&
+        (currentPageName === CONST.CORPAY_FIELDS.PAGE_NAME.ACCOUNT_DETAILS ||
+            currentPageName === CONST.CORPAY_FIELDS.PAGE_NAME.BANK_INFORMATION ||
+            currentPageName === CONST.CORPAY_FIELDS.PAGE_NAME.ACCOUNT_HOLDER_DETAILS);
+    const isFocused = useIsFocused();
+
+    useEffect(() => {
+        if (!isWalletSetup || !isFocused || isRedirecting || !currentPageName) {
+            return;
+        }
+        updatePersonalBankAccountCurrentPage(currentPageName, isEditing ? 'edit' : undefined);
+    }, [currentPageName, isEditing, isFocused, isRedirecting, isWalletSetup]);
 
     const goBackToConfirmStep = () => {
         Navigation.goBack(ROUTES.SETTINGS_ADD_BANK_ACCOUNT.getRoute(route.params?.backTo, CONST.CORPAY_FIELDS.PAGE_NAME.CONFIRM, undefined));
@@ -180,13 +207,15 @@ function InternationalDepositAccountContent({
                         shouldShowBackButton={pageIndex !== CONST.CORPAY_FIELDS.INDEXES.MAPPING.SUCCESS}
                         onBackButtonPress={handleBackButtonPress}
                     />
-                    <CurrentPage
-                        isEditing={isEditing}
-                        onNext={handleNextScreen}
-                        onMove={moveTo}
-                        formValues={values}
-                        fieldsMap={fieldsMap}
-                    />
+                    <FormDraftPersistenceContext.Provider value={shouldPersistDraft}>
+                        <CurrentPage
+                            isEditing={isEditing}
+                            onNext={handleNextScreen}
+                            onMove={moveTo}
+                            formValues={values}
+                            fieldsMap={fieldsMap}
+                        />
+                    </FormDraftPersistenceContext.Provider>
                 </>
             )}
         </ScreenWrapper>
