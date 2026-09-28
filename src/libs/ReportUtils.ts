@@ -278,6 +278,7 @@ import {
     isDeletedTransaction,
     isDemoTransaction,
     isDistanceRequest,
+    isExpensifyCardTransaction,
     isFetchingWaypointsFromServer,
     isManagedCardTransaction,
     isManualDistanceRequest as isManualDistanceRequestTransactionUtils,
@@ -3257,10 +3258,11 @@ function canDeleteMoneyRequestReport(
     }
 
     // Admins can delete a draft report even when they are not its submitter, but not its individual expenses.
-    // Card liability does not apply here: deleting a draft report leaves its expenses unreported rather than deleting them.
+    // Third-party card liability does not apply here because deleting a report leaves its expenses unreported.
+    // Reports containing Expensify Card transactions must still be preserved.
     const isDraft = report?.statusNum === CONST.REPORT.STATUS_NUM.OPEN && report?.stateNum === CONST.REPORT.STATE_NUM.OPEN;
     if (isDraft && isReportPolicyAdmin && isReportLevelDelete) {
-        return true;
+        return reportTransactions.every((reportTransaction) => !isExpensifyCardTransaction(reportTransaction));
     }
 
     if (isInvoiceReport(report)) {
