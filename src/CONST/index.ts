@@ -9143,6 +9143,9 @@ const CONST = {
     },
 
     SENTRY_LABEL: {
+        TEST_TOOL_MENU: {
+            SERVER: 'TestToolMenu-Server',
+        },
         BILLING_BANNER: {
             RIGHT_ICON: 'BillingBanner-RightIcon',
         },
