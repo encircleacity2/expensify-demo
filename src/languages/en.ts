@@ -9981,6 +9981,7 @@ const translations = {
             past: 'Past',
             submitted: 'Submitted',
             approved: 'Approved',
+            anyApproval: 'Any approval',
             firstApprover: 'First approver',
             firstApproved: 'First approved',
             paidBy: 'Paid by',
