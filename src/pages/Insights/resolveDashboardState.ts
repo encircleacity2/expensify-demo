@@ -6,6 +6,10 @@ import type SearchResults from '@src/types/onyx/SearchResults';
 import type {OnyxEntry} from 'react-native-onyx';
 import type {ValueOf} from 'type-fest';
 
+import type {InsightsChartQuery} from './insightsQueries';
+
+import {getInsightsChartLoadState} from './resolveChartData';
+
 const INSIGHTS_DASHBOARD_STATE = {
     READY: 'ready',
     LOADING: 'loading',
@@ -17,28 +21,41 @@ const INSIGHTS_DASHBOARD_STATE = {
 
 type InsightsDashboardState = ValueOf<typeof INSIGHTS_DASHBOARD_STATE>;
 
-/** Resolves the page's state from the record stored for the query on screen, which the key it is read under already scopes. */
-function getDashboardState(dashboard: OnyxEntry<InsightsDashboard>, isOffline: boolean, headlineSnapshot: OnyxEntry<SearchResults>): InsightsDashboardState {
-    // Only a response sets `inputQuery`, so until one lands the record holds nothing to draw.
-    const isDataLoaded = !!dashboard?.inputQuery;
+type InsightsDashboardChart = InsightsChartQuery & {
+    snapshot: OnyxEntry<SearchResults>;
+};
 
-    if (isOffline && !isDataLoaded) {
+/** Resolves the page's state from the dashboard record and the snapshot of every chart on screen. */
+function getDashboardState(dashboard: OnyxEntry<InsightsDashboard>, isOffline: boolean, charts: InsightsDashboardChart[]): InsightsDashboardState {
+    // Only a GetInsights response sets `inputQuery`.
+    const hasDashboardResponse = !!dashboard?.inputQuery;
+    const chartStates = charts.map(({chart, snapshot, queryJSON}) => {
+        const {isNamedByDashboard, isLoaded} = getInsightsChartLoadState({chart, dashboard, snapshot, queryJSON});
+        return {
+            isLoaded,
+            isSettled: isLoaded || (hasDashboardResponse && !isNamedByDashboard),
+            hasRows: isLoaded && Object.keys(snapshot?.data ?? {}).some(isGroupEntry),
+        };
+    });
+    const isWaitingForData = !hasDashboardResponse && !chartStates.some(({isLoaded}) => isLoaded);
+
+    if (isOffline && isWaitingForData) {
         return INSIGHTS_DASHBOARD_STATE.OFFLINE;
     }
     if (!isOffline && Object.keys(dashboard?.errors ?? {}).length > 0) {
         return INSIGHTS_DASHBOARD_STATE.ERROR;
     }
-    if (!isDataLoaded) {
+    if (isWaitingForData) {
         return INSIGHTS_DASHBOARD_STATE.LOADING;
     }
     if (dashboard?.hasResults === false) {
         return INSIGHTS_DASHBOARD_STATE.NO_EXPENSES;
     }
-    if (headlineSnapshot?.data && !Object.keys(headlineSnapshot.data).some(isGroupEntry)) {
+    if (chartStates.every(({isSettled}) => isSettled) && !chartStates.some(({hasRows}) => hasRows)) {
         return INSIGHTS_DASHBOARD_STATE.EMPTY;
     }
     return INSIGHTS_DASHBOARD_STATE.READY;
 }
 
 export {INSIGHTS_DASHBOARD_STATE, getDashboardState};
-export type {InsightsDashboardState};
+export type {InsightsDashboardState, InsightsDashboardChart};

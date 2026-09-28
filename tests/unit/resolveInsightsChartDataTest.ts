@@ -1,6 +1,7 @@
 import type {GroupedItem} from '@components/Search/types';
 
 import {getMicroSecondOnyxErrorWithTranslationKey} from '@libs/ErrorUtils';
+import {buildSearchQueryJSON} from '@libs/SearchQueryUtils';
 
 import INSIGHTS_DASHBOARD_SPECS from '@pages/Insights/dashboardSpecs';
 import {INSIGHTS_CHART_STATE, resolveInsightsChartData} from '@pages/Insights/resolveChartData';
@@ -11,20 +12,23 @@ import type SearchResults from '@src/types/onyx/SearchResults';
 
 const CHART = INSIGHTS_DASHBOARD_SPECS[CONST.INSIGHTS.DASHBOARD.SPEND].headlineChart;
 const QUERY = 'groupBy:month groupCurrency:USD date:year-to-date';
-const DASHBOARD_WITH_SNAPSHOT: InsightsDashboard = {inputQuery: QUERY, graphs: {[CHART.graphKey]: {snapshotHash: 1234}}};
+const QUERY_JSON = buildSearchQueryJSON(QUERY);
+const DASHBOARD_WITH_SNAPSHOT: InsightsDashboard = {inputQuery: QUERY, graphs: {[CHART.graphKey]: {snapshotHash: QUERY_JSON?.hash ?? 0}}};
 const ERRORS = getMicroSecondOnyxErrorWithTranslationKey('common.genericErrorMessage');
 
+/** Builds a snapshot a request settled for the chart's query, the way GetInsights and Search both leave it. */
 function makeSnapshot(overrides: Partial<SearchResults> = {}): SearchResults {
     return {
         search: {
             offset: 0,
-            hash: 1234,
+            hash: QUERY_JSON?.hash ?? 0,
             type: CONST.SEARCH.DATA_TYPES.EXPENSE,
             sortBy: CONST.SEARCH.TABLE_COLUMNS.GROUP_MONTH,
             sortOrder: CONST.SEARCH.SORT_ORDER.ASC,
             hasMoreResults: false,
             hasResults: true,
             isLoading: false,
+            state: CONST.SEARCH.SNAPSHOT_STATE.LOADED,
         },
         data: {},
         ...overrides,
@@ -48,67 +52,96 @@ function makeRows(count: number): GroupedItem[] {
 }
 
 describe('resolveInsightsChartData', () => {
-    it('plots the rows once the snapshot the record named holds data', () => {
-        // Given a record that answered the query on screen, and the rows read off the snapshot it named
+    it('plots the rows once a Search request settled the snapshot', () => {
+        // Given no stored dashboard yet, and a snapshot a Search request settled for the chart's query
         const sortedData = makeRows(3);
 
         // When the chart is resolved against them
-        const {data, state} = resolveInsightsChartData({chart: CHART, dashboard: DASHBOARD_WITH_SNAPSHOT, snapshot: makeSnapshot(), sortedData});
+        const {data, state} = resolveInsightsChartData({chart: CHART, dashboard: undefined, snapshot: makeSnapshot(), queryJSON: QUERY_JSON, sortedData});
 
-        // Then the chart is ready and plots those rows
+        // Then the chart is ready right away instead of waiting on GetInsights for data it already has
         expect(state).toBe(INSIGHTS_CHART_STATE.READY);
         expect(data).toBe(sortedData);
     });
 
-    it('waits while the snapshot the record named holds nothing yet', () => {
-        // Given a record naming a snapshot Onyx has not written yet
+    it('waits while nothing is stored for the chart', () => {
+        // Given no snapshot under the chart's query yet
         // When the chart is resolved
-        const {data, state} = resolveInsightsChartData({chart: CHART, dashboard: DASHBOARD_WITH_SNAPSHOT, snapshot: undefined, sortedData: undefined});
+        const {data, state} = resolveInsightsChartData({chart: CHART, dashboard: undefined, snapshot: undefined, queryJSON: QUERY_JSON, sortedData: undefined});
 
-        // Then the chart is still loading rather than empty, because a named snapshot says data is on its way
+        // Then the chart is still loading rather than empty
         expect(state).toBe(INSIGHTS_CHART_STATE.LOADING);
         expect(data).toEqual([]);
     });
 
-    it('is loading rather than empty until a response is stored', () => {
-        // Given nothing stored for the dashboard yet, so no chart has a snapshot hash
-        const dashboard = undefined;
+    it('waits while the stored snapshot answers a different query', () => {
+        // Given a snapshot whose metadata names another query's hash
+        const snapshot = makeSnapshot({search: {...makeSnapshot().search, hash: 1234}});
 
         // When the chart is resolved
-        const {state} = resolveInsightsChartData({chart: CHART, dashboard, snapshot: undefined, sortedData: undefined});
+        const {state} = resolveInsightsChartData({chart: CHART, dashboard: undefined, snapshot, queryJSON: QUERY_JSON, sortedData: makeRows(2)});
 
-        // Then it is loading, because only a stored response can tell a chart it has nothing to plot
+        // Then the chart keeps loading instead of plotting rows that belong to another query
         expect(state).toBe(INSIGHTS_CHART_STATE.LOADING);
     });
 
-    it('is empty when the response named no snapshot for the chart', () => {
-        // Given a record that answered the query without a snapshot for this chart
-        const dashboard: InsightsDashboard = {inputQuery: QUERY, graphs: {}};
+    it('is empty when a Search request settled without any data', () => {
+        // Given a snapshot a Search request marked loaded but wrote no data to
+        const snapshot = makeSnapshot({data: undefined});
 
         // When the chart is resolved
-        const {state} = resolveInsightsChartData({chart: CHART, dashboard, snapshot: undefined, sortedData: undefined});
+        const {state} = resolveInsightsChartData({chart: CHART, dashboard: undefined, snapshot, queryJSON: QUERY_JSON, sortedData: undefined});
 
-        // Then the chart is empty, because the response found nothing to plot
+        // Then the chart is empty, because the request is done and found nothing to plot
         expect(state).toBe(INSIGHTS_CHART_STATE.EMPTY);
     });
 
     it('is empty when the snapshot arrived with no rows in it', () => {
-        // Given a snapshot holding data that groups into nothing
+        // Given a settled snapshot holding data that groups into nothing
         // When the chart is resolved
-        const {state} = resolveInsightsChartData({chart: CHART, dashboard: DASHBOARD_WITH_SNAPSHOT, snapshot: makeSnapshot(), sortedData: []});
+        const {state} = resolveInsightsChartData({chart: CHART, dashboard: undefined, snapshot: makeSnapshot(), queryJSON: QUERY_JSON, sortedData: []});
 
         // Then the chart is empty
         expect(state).toBe(INSIGHTS_CHART_STATE.EMPTY);
     });
 
     it('fails when the snapshot itself carries errors', () => {
-        // Given a record that answered the query, whose snapshot came back with errors
+        // Given a snapshot that came back with errors
         const snapshot = makeSnapshot({errors: ERRORS});
 
         // When the chart is resolved
-        const {state} = resolveInsightsChartData({chart: CHART, dashboard: DASHBOARD_WITH_SNAPSHOT, snapshot, sortedData: undefined});
+        const {state} = resolveInsightsChartData({chart: CHART, dashboard: undefined, snapshot, queryJSON: QUERY_JSON, sortedData: undefined});
 
         // Then the chart shows the failure
         expect(state).toBe(INSIGHTS_CHART_STATE.ERROR);
+    });
+
+    it('says it is offline when nothing is stored for it and no data can arrive', () => {
+        // Given no snapshot for the chart, while the device is offline
+        // When the chart is resolved
+        const {state} = resolveInsightsChartData({chart: CHART, dashboard: undefined, snapshot: undefined, queryJSON: QUERY_JSON, sortedData: undefined, isOffline: true});
+
+        // Then it shows the offline state instead of loading forever
+        expect(state).toBe(INSIGHTS_CHART_STATE.OFFLINE);
+    });
+
+    it('keeps plotting stored rows while offline', () => {
+        // Given a settled snapshot with rows, and a connection that since dropped
+        const sortedData = makeRows(3);
+
+        // When the chart is resolved
+        const {state} = resolveInsightsChartData({chart: CHART, dashboard: undefined, snapshot: makeSnapshot(), queryJSON: QUERY_JSON, sortedData, isOffline: true});
+
+        // Then the chart stays on screen rather than being replaced by the offline state
+        expect(state).toBe(INSIGHTS_CHART_STATE.READY);
+    });
+
+    it('waits while the snapshot the dashboard named is not stored yet', () => {
+        // Given a record naming a snapshot hash with nothing stored under it yet
+        // When the chart is resolved
+        const {state} = resolveInsightsChartData({chart: CHART, dashboard: DASHBOARD_WITH_SNAPSHOT, snapshot: undefined, queryJSON: QUERY_JSON, sortedData: undefined});
+
+        // Then the chart is still loading rather than empty, because a named snapshot says data is on its way
+        expect(state).toBe(INSIGHTS_CHART_STATE.LOADING);
     });
 });
