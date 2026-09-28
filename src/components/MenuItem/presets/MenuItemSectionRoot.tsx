@@ -1,6 +1,7 @@
 import MenuItemRoot from '@components/MenuItem/layout/MenuItemRoot';
 import type {MenuItemRootProps} from '@components/MenuItem/layout/MenuItemRoot';
 
+import useLayoutSpacing from '@hooks/useLayoutSpacing';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useThemeStyles from '@hooks/useThemeStyles';
 
@@ -18,11 +19,12 @@ type MenuItemSectionRootProps = MenuItemRootProps & {
 function MenuItemSectionRoot({children, onPress, isDisabled = false, sentryLabel, testID, accessibilityLabel, ref}: MenuItemSectionRootProps) {
     const styles = useThemeStyles();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
+    const {cardEdgeToEdge} = useLayoutSpacing();
 
     return (
         <View
             ref={ref}
-            style={shouldUseNarrowLayout ? styles.mhn5 : styles.mhn8}
+            style={cardEdgeToEdge}
         >
             <MenuItemRoot
                 onPress={onPress}

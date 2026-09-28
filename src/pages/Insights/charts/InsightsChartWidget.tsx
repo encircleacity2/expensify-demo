@@ -5,6 +5,7 @@ import SearchChartView from '@components/Search/SearchChartView';
 import WidgetContainer from '@components/WidgetContainer';
 import WidgetHeaderMenu from '@components/WidgetHeaderMenu';
 
+import useLayoutSpacing from '@hooks/useLayoutSpacing';
 import {useMemoizedLazyExpensifyIcons} from '@hooks/useLazyAsset';
 import useLocalize from '@hooks/useLocalize';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -49,6 +50,7 @@ function InsightsChartWidget({dashboardID, hash, chart, filters, onRetry, onGrou
     const styles = useThemeStyles();
     const {translate} = useLocalize();
     const {shouldUseNarrowLayout} = useResponsiveLayout();
+    const {cardPaddingHorizontal} = useLayoutSpacing();
     const icons = useMemoizedLazyExpensifyIcons(['Expand']);
 
     const {queryJSON, data, state} = useInsightsChartData(dashboardID, hash, chart, filters);
@@ -106,7 +108,7 @@ function InsightsChartWidget({dashboardID, hash, chart, filters, onRetry, onGrou
                         data={data}
                         isLoading={isLoading}
                         color={chart.color}
-                        chartContainerStyle={shouldUseNarrowLayout ? styles.ph5 : styles.ph8}
+                        chartContainerStyle={cardPaddingHorizontal}
                         renderDetails={
                             shouldShowTable
                                 ? (rows) => (

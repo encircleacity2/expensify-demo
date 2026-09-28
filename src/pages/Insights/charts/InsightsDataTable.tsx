@@ -4,8 +4,8 @@ import type {ChartView, GroupedItem, SearchChartDataRow, SearchGroupBy} from '@c
 import Text from '@components/Text';
 
 import {useCurrencyListActions} from '@hooks/useCurrencyList';
+import useLayoutSpacing from '@hooks/useLayoutSpacing';
 import useLocalize from '@hooks/useLocalize';
-import useResponsiveLayout from '@hooks/useResponsiveLayout';
 import useStyleUtils from '@hooks/useStyleUtils';
 import useThemeStyles from '@hooks/useThemeStyles';
 
@@ -48,7 +48,7 @@ function InsightsDataTable({rows, view, groupBy, isLoading}: InsightsDataTablePr
     const StyleUtils = useStyleUtils();
     const {translate, preferredLocale} = useLocalize();
     const {convertToDisplayString} = useCurrencyListActions();
-    const {shouldUseNarrowLayout} = useResponsiveLayout();
+    const {cardPaddingHorizontal} = useLayoutSpacing();
 
     const shouldShowAvatar = isMemberGroupBy(groupBy);
 
@@ -76,7 +76,7 @@ function InsightsDataTable({rows, view, groupBy, isLoading}: InsightsDataTablePr
                 return (
                     <View
                         key={item.keyForList}
-                        style={[styles.flexRow, styles.alignItemsCenter, styles.gap3, styles.pv4, shouldUseNarrowLayout ? styles.ph5 : styles.ph8, !isLastRow && styles.borderBottom]}
+                        style={[styles.flexRow, styles.alignItemsCenter, styles.gap3, styles.pv4, cardPaddingHorizontal, !isLastRow && styles.borderBottom]}
                     >
                         {shouldShowColorDot && <View style={[styles.pieChartLegendDot, !!color && StyleUtils.getBackgroundColorStyle(color)]} />}
                         {isMemberGroup(item) && (
