@@ -42,6 +42,7 @@ import {
 } from '@libs/actions/Search';
 import initSplitExpense from '@libs/actions/SplitExpenses';
 import {setNameValuePair} from '@libs/actions/User';
+import {canResolveTransactionCard} from '@libs/CardUtils';
 import {getConnectionCompanyID} from '@libs/CopyPolicySettingsUtils';
 import deferModalPresentationAfterPopoverDismiss from '@libs/deferModalPresentationAfterPopoverDismiss';
 import {getExpensifyCardStatementParamsFromFeed, getExpensifyCardStatementSelection} from '@libs/ExpensifyCardStatementUtils';
@@ -620,6 +621,7 @@ function useSearchBulkActions({queryJSON}: UseSearchBulkActionsParams) {
     const [dismissedHoldUseExplanation] = useOnyx(ONYXKEYS.NVP_DISMISSED_HOLD_USE_EXPLANATION);
     const [isTrackIntentUser] = useOnyx(ONYXKEYS.NVP_INTRO_SELECTED, {selector: isTrackIntentUserSelector});
     const [rules] = useOnyx(ONYXKEYS.COLLECTION.RULE);
+    const [nonPersonalAndWorkspaceCards] = useOnyx(ONYXKEYS.DERIVED.NON_PERSONAL_AND_WORKSPACE_CARD_LIST);
 
     const isExpenseReportType = queryJSON?.type === CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT;
     const expensifyIcons = useMemoizedLazyExpensifyIcons([
@@ -2359,14 +2361,16 @@ function useSearchBulkActions({queryJSON}: UseSearchBulkActionsParams) {
         }
         const moveHasMultipleOwners = moveOwnerAccountIDs.size > 1 || (moveHasUnknownOwner && (moveOwnerAccountIDs.size > 0 || selectedTransactionsKeys.length > 1));
 
-        // For selections across submitters, offer only Auto report when every expense has a resolved owner,
-        // is on a managed card, and does not depend on the destination workspace. Otherwise hide the flow.
+        // For selections across submitters, offer only Auto report when every expense has a resolved owner, is on a
+        // card the mover can resolve, and does not depend on the destination workspace. Otherwise hide the flow.
+        // The backend resolves each destination through the card. No card, or a feed they do not administer, fails
+        // the whole request.
         const canAutoReportAcrossSubmitters =
             moveOwnerAccountIDs.size > 1 &&
             !moveHasUnknownOwner &&
             selectedTransactionsKeys.every((id) => {
                 const transaction = selectedTransactions[id]?.transaction ?? allTransactions?.[`${ONYXKEYS.COLLECTION.TRANSACTION}${id}`];
-                if (!transaction || !isManagedCardTransaction(transaction)) {
+                if (!canResolveTransactionCard(transaction, nonPersonalAndWorkspaceCards)) {
                     return false;
                 }
                 return !(isPerDiemRequest(transaction) || isManualDistanceRequest(transaction) || isOdometerDistanceRequest(transaction));
@@ -3076,6 +3080,7 @@ function useSearchBulkActions({queryJSON}: UseSearchBulkActionsParams) {
         hash,
         selectedTransactions,
         excludedTransactions,
+        nonPersonalAndWorkspaceCards,
         queryJSON,
         expensifyIcons,
         translate,
